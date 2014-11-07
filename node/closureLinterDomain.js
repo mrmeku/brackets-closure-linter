@@ -25,6 +25,7 @@
       tempId++;
       tempPath = [dirName, TEMP_COPY_PREFIX, tempId, '.', baseName].join('');
     }
+    console.log(tempPath);
     fs.writeFile(tempPath, text, function(error) {
       if (error) {
         callback(error, 'Temporary file could not be written.');

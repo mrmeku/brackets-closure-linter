@@ -69,12 +69,12 @@ define(function(require, exports, module) {
   function gjslintAsync(text, filePath) {
     var deferred = new $.Deferred();
     closureLinter.exec('gjslint', text, filePath)
-    .done(function(stdout) {
+      .done(function(stdout) {
           deferred.resolve({errors: parseGjslintStdout(stdout)});
         })
-    .fail(function(error, message) {
+      .fail(function(error, message) {
           console.error(EXTENSION_ID + ': error when running gjslint',
-                        error, message);
+              error, message);
         });
     return deferred.promise();
   }
@@ -97,7 +97,8 @@ define(function(require, exports, module) {
         .done(function(styledText) {
               // TODO: Think of a constant time way to do this check.
               if (styledText != text) {
-                // TODO: Use a diff library to compute changes.
+                /* TODO: Use a diff library to compute changes and replace text
+                      in a batch update. */
                 editor.document.setText(styledText);
                 editor.setCursorPos(cursor);
                 editor.setScrollPos(scroll.x, scroll.y);
@@ -105,8 +106,8 @@ define(function(require, exports, module) {
               deferred.resolve();
             })
         .fail(function(error, message) {
-              console.error(EXTENSION_ID + ': error when running fjxjsstyle',
-                            error, message);
+              console.error(EXTENSION_ID + ': fjxjsstyle error',
+                  error, message);
               deferred.reject();
             });
       }
@@ -116,25 +117,37 @@ define(function(require, exports, module) {
 
   /**
    * Runs fixjsstyle and then re-saves the document.
+   * NOTE: This causes errors in brackets so isn't currently used.
    * @param {!Object} event DocumentSaved event that triggered function.
    * @param {Document} document Brackets document being saved.
    */
-  function fixjsstyleOnSave(event, document) {
-    fixjsstyleAsync().done(function() {
-      $DocumentManager.off('documentSaved', fixjsstyleOnSave);
-      CommandManager.execute(Commands.FILE_SAVE, {doc: document});
-      $DocumentManager.on('documentSaved', fixjsstyleOnSave);
-    });
+  function fixjsstyleAndReSave(event, document) {
+    var deferred = new $.Deferred();
+    fixjsstyleAsync()
+      .done(function() {
+          $DocumentManager.off('documentSaved', fixjsstyleAndReSave);
+          CommandManager.execute(Commands.FILE_SAVE, {doc: document})
+          .done(function() {
+                // Check if user disabled fixjsstyle on save while saving.
+                var checked = fixjsstyleOnSaveCommand.getChecked();
+                $DocumentManager[checked ? 'on' : 'off'](
+                    'documentSaved', fixjsstyleOnSave);
+                deferred.resolve();
+              })
+          .fail(function() { deferred.reject() });
+        });
+    return deferred.promise();
   }
 
   /**
    * Turns Fixjsstyle On Save command on or off.
-   * @param {Boolean} value True turns command on and vice versa.
+   * @param {Boolean} checked True turns command on and vice versa.
    */
-  function setFixjsstyleOnSave(value) {
-    $DocumentManager[value ? 'on' : 'off']('documentSaved', fixjsstyleOnSave);
-    fixjsstyleOnSaveCommand.setChecked(value);
-    PreferencesManager.set(FIXJSSTYLE_ONSAVE_ID, value);
+  function setFixjsstyleOnSave(checked) {
+    // TODO: change fixjsstyleAsync to fixjsstyleAndReSave when bug fixed.
+    $DocumentManager[checked ? 'on' : 'off']('documentSaved', fixjsstyleAsync);
+    fixjsstyleOnSaveCommand.setChecked(checked);
+    PreferencesManager.set(FIXJSSTYLE_ONSAVE_ID, checked);
     PreferencesManager.save();
   }
 
