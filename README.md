@@ -1,7 +1,7 @@
 brackets-closure-linter
 =======================
 
-[Brackets](http://brackets.io/) extension that provides hooks to the [Closure Linter](https://developers.google.com/closure/utilities/). The Closure Linter is a utility that checks JavaScript files for style issues such as operator placement, missing semicolons, spacing, the presence of JsDoc annotations, and more.
+A [Brackets](http://brackets.io/) extension that provides hooks to the [Closure Linter](https://developers.google.com/closure/utilities/). The Closure Linter is a utility that checks JavaScript files for style issues such as operator placement, missing semicolons, spacing, the presence of JsDoc annotations, and more.
 
 Installation
 ---
