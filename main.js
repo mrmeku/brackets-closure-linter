@@ -161,5 +161,9 @@ define(function(require, exports, module) {
       name: GJSLINT_ID,
       scanFileAsync: gjslintAsync
     });
+    CodeInspection.register('html', {
+      name: GJSLINT_ID,
+      scanFileAsync: gjslintAsync
+    });
   });
 });

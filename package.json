@@ -1,23 +1,22 @@
 {
-    "name": "com.github.mrmeku.closure-linter",
-    "title": "Closure Linter",
-    "description": "Lint javascript files according to the Google style guide and automatically fix linting errors.",
-    "homepage": "https://github.com/mrmeku/brackets-closure-linter",
-    "version": "0.1.0",
-    "author": "Daniel Muller <mrmeku@gmail.com> (https://github.com/mrmeku)",
-    "license": "MIT",
-    "engines": {
-      "brackets": ">=0.40.0"
-    },
-    "keywords": [
-      "lint",
-      "linting",
-      "linter",
-      "gjslint",
-      "closure",
-      "closure linter",
-      "fixjsstyle"
-      ],
-    "categories":"linting",
-    }
+  "name": "com.github.mrmeku.closure-linter",
+  "title": "Closure Linter",
+  "description": "Lint javascript files according to the Google style guide and automatically fix linting errors.",
+  "homepage": "https://github.com/mrmeku/brackets-closure-linter",
+  "version": "0.1.0",
+  "author": "Daniel Muller <mrmeku@gmail.com> (https://github.com/mrmeku)",
+  "license": "MIT",
+  "engines": {
+    "brackets": ">=0.40.0"
+  },
+  "keywords": [
+    "lint",
+    "linting",
+    "linter",
+    "gjslint",
+    "closure",
+    "closure linter",
+    "fixjsstyle"
+    ],
+  "categories": "linting"
 }
