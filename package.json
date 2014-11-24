@@ -5,7 +5,7 @@
   "homepage": "https://github.com/mrmeku/brackets-closure-linter",
   "version": "0.1.0",
   "author": "Daniel Muller <mrmeku@gmail.com> (https://github.com/mrmeku)",
-  "license": "MIT",
+  "license": "Apache",
   "engines": {
     "brackets": ">=0.40.0"
   },

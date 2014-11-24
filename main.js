@@ -16,7 +16,6 @@ define(function(require, exports, module) {
 
   var AppInit = brackets.getModule('utils/AppInit'),
       DocumentManager = brackets.getModule('document/DocumentManager'),
-      Commands = brackets.getModule('command/Commands'),
       CommandManager = brackets.getModule('command/CommandManager'),
       CodeInspection = brackets.getModule('language/CodeInspection'),
       EditorManager = brackets.getModule('editor/EditorManager'),
@@ -25,17 +24,24 @@ define(function(require, exports, module) {
       NodeDomain = brackets.getModule('utils/NodeDomain'),
       PreferencesManager = brackets.getModule('preferences/PreferencesManager');
 
+  // Access to node process with hooks to closure linter.
   var closureLinter = new NodeDomain('closureLinter',
       ExtensionUtils.getModulePath(module, 'node/closureLinterDomain'));
 
+  // Make DocumentManager into a jquery object for event binding.
   var $DocumentManager = $(DocumentManager);
 
+  // Register commands to be made into menu items.
   var fixjsstyleCommand = CommandManager.register(
       'Fixjsstyle', FIXJSSTYLE_ID, fixjsstyleAsync),
       fixjsstyleOnSaveCommand = CommandManager.register(
       'Fixjsstyle On Save', FIXJSSTYLE_ONSAVE_ID, function() {
         setFixjsstyleOnSave(!this.getChecked());
       });
+
+  // Brackets only supports one linting instance at a time so we stop any
+  // that are midprogress when the linter is invoked.
+  var gjslintDeferred = new $.Deferred();
 
   /**
    * Creates array of linting error objects from stdout of gjslint.
@@ -67,96 +73,74 @@ define(function(require, exports, module) {
    *     linting errors.
    */
   function gjslintAsync(text, filePath) {
-    var deferred = new $.Deferred();
+    gjslintDeferred.resolve();
+    gjslintDeferred = new $.Deferred();
     closureLinter.exec('gjslint', text, filePath)
       .done(function(stdout) {
-          deferred.resolve({errors: parseGjslintStdout(stdout)});
+          gjslintDeferred.resolve({errors: parseGjslintStdout(stdout)});
         })
       .fail(function(error, message) {
-          console.error(EXTENSION_ID + ': error when running gjslint',
-              error, message);
+          gjslintDeferred.reject(error, message);
         });
-    return deferred.promise();
+    return gjslintDeferred.promise();
   }
+
 
   /**
    * Makes an asyncrhonous call to fixjsstyle on the potentially unsaved text.
    * @return {$.Promise} Promise to return text with fixed style.
    */
   function fixjsstyleAsync() {
-    var deferred = new $.Deferred(),
-        editor = EditorManager.getCurrentFullEditor(),
+    var editor = EditorManager.getCurrentFullEditor(),
         filePath = EditorManager.getCurrentlyViewedPath();
     if (editor && filePath) {
-      var text = editor.document.getText(),
+      var document = editor.document,
+          text = document.getText(),
           cursor = editor.getCursorPos(),
           scroll = editor.getScrollPos(),
-          language = editor.document.getLanguage().getId();
+          language = document.getLanguage().getId();
+      // Only fix the style of javascript or html script tags
       if (language === 'javascript' || language === 'html') {
-        closureLinter.exec('fixjsstyle', text, filePath)
+        // Get a reference incase something happends during async command.
+        document.addRef();
+        return closureLinter.exec('fixjsstyle', text, filePath)
         .done(function(styledText) {
-              // TODO: Think of a constant time way to do this check.
-              if (styledText != text) {
-                /* TODO: Use a diff library to compute changes and replace text
-                      in a batch update. */
+              if (styledText !== text) {
                 editor.document.setText(styledText);
-                editor.setCursorPos(cursor);
-                editor.setScrollPos(scroll.x, scroll.y);
               }
-              deferred.resolve();
             })
-        .fail(function(error, message) {
-              console.error(EXTENSION_ID + ': fjxjsstyle error',
-                  error, message);
-              deferred.reject();
+        .always(function() {
+              editor.setScrollPos(scroll.x, scroll.y);
+              editor.setCursorPos(cursor.line, cursor.ch);
+              document.releaseRef();
             });
       }
-      return deferred.promise();
     }
   }
 
-  /**
-   * Runs fixjsstyle and then re-saves the document.
-   * NOTE: This causes errors in brackets so isn't currently used.
-   * @param {!Object} event DocumentSaved event that triggered function.
-   * @param {Document} document Brackets document being saved.
-   */
-  function fixjsstyleAndReSave(event, document) {
-    var deferred = new $.Deferred();
-    fixjsstyleAsync()
-      .done(function() {
-          $DocumentManager.off('documentSaved', fixjsstyleAndReSave);
-          CommandManager.execute(Commands.FILE_SAVE, {doc: document})
-          .done(function() {
-                // Check if user disabled fixjsstyle on save while saving.
-                var checked = fixjsstyleOnSaveCommand.getChecked();
-                $DocumentManager[checked ? 'on' : 'off'](
-                    'documentSaved', fixjsstyleOnSave);
-                deferred.resolve();
-              })
-          .fail(function() { deferred.reject() });
-        });
-    return deferred.promise();
-  }
 
   /**
    * Turns Fixjsstyle On Save command on or off.
    * @param {Boolean} checked True turns command on and vice versa.
    */
   function setFixjsstyleOnSave(checked) {
-    // TODO: change fixjsstyleAsync to fixjsstyleAndReSave when bug fixed.
-    $DocumentManager[checked ? 'on' : 'off']('documentSaved', fixjsstyleAsync);
+    $DocumentManager[checked ? 'on' : 'off'](
+        'documentSaved', fixjsstyleAsync);
     fixjsstyleOnSaveCommand.setChecked(checked);
     PreferencesManager.set(FIXJSSTYLE_ONSAVE_ID, checked);
     PreferencesManager.save();
   }
 
+
   AppInit.appReady(function() {
+    // Set up fixjsstyle menu items.
     var editMenu = Menus.getMenu(Menus.AppMenuBar.EDIT_MENU);
     editMenu.addMenuDivider();
     editMenu.addMenuItem(FIXJSSTYLE_ID, FIXJSSTYLE_SHORTCUT);
     editMenu.addMenuItem(FIXJSSTYLE_ONSAVE_ID);
+    // Restore previous menu preferences.
     setFixjsstyleOnSave(PreferencesManager.get(FIXJSSTYLE_ONSAVE_ID));
+    // Register gjslint to lint javascript and html files.
     CodeInspection.register('javascript', {
       name: GJSLINT_ID,
       scanFileAsync: gjslintAsync
