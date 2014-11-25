@@ -39,9 +39,25 @@ define(function(require, exports, module) {
         setFixjsstyleOnSave(!this.getChecked());
       });
 
-  // Brackets only supports one linting instance at a time so we stop any
-  // that are midprogress when the linter is invoked.
-  var gjslintDeferred = new $.Deferred();
+  /**
+   * Makes an asynchronous call to gjslint on the potentially unsaved text.
+   * @param {string} text Text content of the potentially unsaved file.
+   * @param {string} filePath Path to the potentially unsaved file being linted.
+   * @return {$.Promise} Promise to return an object mapping to an array of
+   *     linting errors.
+   */
+  function gjslintAsync(text, filePath) {
+    var deferred = new $.Deferred();
+    closureLinter.exec('gjslint', text, filePath)
+        .done(function(stdout) {
+          deferred.resolve({errors: parseGjslintStdout(stdout)});
+        })
+        .fail(function(error, message) {
+          deferred.reject(error, message);
+        });
+    return deferred.promise();
+  }
+
 
   /**
    * Creates array of linting error objects from stdout of gjslint.
@@ -65,26 +81,6 @@ define(function(require, exports, module) {
     return lintingErrors;
   }
 
-  /**
-   * Makes an asynchronous call to gjslint on the potentially unsaved text.
-   * @param {string} text Text content of the potentially unsaved file.
-   * @param {string} filePath Path to the potentially unsaved file being linted.
-   * @return {$.Promise} Promise to return an object mapping to an array of
-   *     linting errors.
-   */
-  function gjslintAsync(text, filePath) {
-    gjslintDeferred.resolve();
-    gjslintDeferred = new $.Deferred();
-    closureLinter.exec('gjslint', text, filePath)
-      .done(function(stdout) {
-          gjslintDeferred.resolve({errors: parseGjslintStdout(stdout)});
-        })
-      .fail(function(error, message) {
-          gjslintDeferred.reject(error, message);
-        });
-    return gjslintDeferred.promise();
-  }
-
 
   /**
    * Makes an asyncrhonous call to fixjsstyle on the potentially unsaved text.
@@ -101,17 +97,19 @@ define(function(require, exports, module) {
           language = document.getLanguage().getId();
       // Only fix the style of javascript or html script tags
       if (language === 'javascript' || language === 'html') {
-        // Get a reference incase something happends during async command.
+        // Keep a reference of document during async command.
         document.addRef();
         return closureLinter.exec('fixjsstyle', text, filePath)
         .done(function(styledText) {
               if (styledText !== text) {
+                // Replace the text and reset the viewport/cursor.
                 editor.document.setText(styledText);
+                editor.setScrollPos(scroll.x, scroll.y);
+                editor.setCursorPos(cursor.line, cursor.ch);
               }
             })
         .always(function() {
-              editor.setScrollPos(scroll.x, scroll.y);
-              editor.setCursorPos(cursor.line, cursor.ch);
+              // Release document reference since we are done with it.
               document.releaseRef();
             });
       }

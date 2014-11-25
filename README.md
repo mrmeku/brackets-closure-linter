@@ -9,9 +9,18 @@ To install, place in your ```brackets/src/extensions/user``` folder.
 
 Usage
 ---
-After installation, the closure linter's `gjslint` becomes your default javascript linter. To see it in action, open a JavaScript file. In the bottom right corner of your editor you will either see a green checkmark (which means no problems were found) or a yellow exclamation mark. Click on the exclamation mark and a bottom panel will open listing all the problems found.
+After installation, the closure linter's gjslint` becomes your default javascript linter. To see it in action, open a JavaScript file. In the bottom right corner of your editor you will either see a green checkmark (which means no problems were found) or a yellow exclamation mark. Click on the exclamation mark and a bottom panel will open listing all the problems found.
 
 The closure linter also comes bundled with a `fixjsstyle` command which can automatically fix identified linting errors. To see it in action, open a JavaScript file. If you see a yellow exclamation mark in the bottom right corner of your editor, you have linting errors that `fixjsstyle` may be able to fix. Select  `Edit > Fixjsstyle` menu or `Cmd-Shift-J(Mac) / Ctrl-Shift-J(Win)` to run the command. Then save your file and watch your linting errors disappear!
 
 You can also have fixjsstyle run automatically whenever you save a javascript or html document by selecting `Edit > Fixjsstyle On Save`.
 
+Files
+___
+main.js:
+  Sets up menu items for `fixjsstyle` and `fixjsstyle on save`
+  When brackets is ready, `gjslint` is regestered to lint both a javascript html
+closureLinterDomain.js:
+  A node instance which creates a temporary file copied from the editor's current text and runs the closure linter
+closure_linter/:
+  Google's closure linter
