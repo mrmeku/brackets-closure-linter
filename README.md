@@ -17,10 +17,10 @@ You can also have fixjsstyle run automatically whenever you save a javascript or
 
 Files
 ___
-main.js:
-  Sets up menu items for `fixjsstyle` and `fixjsstyle on save`
-  When brackets is ready, `gjslint` is regestered to lint both a javascript html
-closureLinterDomain.js:
-  A node instance which creates a temporary file copied from the editor's current text and runs the closure linter
-closure_linter/:
-  Google's closure linter
+- main.js:
+  - Sets up menu items for `fixjsstyle` and `fixjsstyle on save`
+  - When brackets is ready, `gjslint` is registered to lint both a javascript html
+- closureLinterDomain.js:
+  - A node instance which creates a temporary file copied from the editor's current text and runs the closure linter
+- closure_linter/:
+  - Google's closure linter
