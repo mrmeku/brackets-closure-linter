@@ -3,7 +3,7 @@
   "title": "Closure Linter",
   "description": "Lint javascript files according to the Google style guide and automatically fix linting errors.",
   "homepage": "https://github.com/mrmeku/brackets-closure-linter",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": "Daniel Muller <mrmeku@gmail.com> (https://github.com/mrmeku)",
   "license": "Apache",
   "engines": {
