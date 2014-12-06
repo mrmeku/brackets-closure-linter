@@ -54,6 +54,7 @@
       exec(command, function(error, stdout, stderr) {
         fs.unlink(tempPath);
         if (stderr) {
+          console.error(error, stderr);
           callback(error, stderr);
         } else {
           callback(null, stdout);
@@ -76,6 +77,7 @@
       var escapedPath = tempPath.replace(/ /g, '\\ '),
           command = ['python', FIXJSSTYLE_PATH, flags, escapedPath].join(' ');
       if (error) {
+        console.error(error, tempPath);
         callback(error, tempPath);
         return;
       }
@@ -83,6 +85,7 @@
         var fixedText = fs.readFileSync(tempPath, 'utf8');
         fs.unlink(tempPath);
         if (error) {
+          console.error(error, stderr);
           callback(error, stderr);
         } else {
           callback(null, fixedText);

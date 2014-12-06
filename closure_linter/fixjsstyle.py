@@ -18,8 +18,12 @@
 
 __author__ = 'robbyw@google.com (Robert Walker)'
 
+import os
 import sys
 
+CLOSURE_LINTER_PATH = os.path.realpath(__file__)[:-(len('closure_linter/fixjsstyle.py'))]
+if CLOSURE_LINTER_PATH not in sys.path:
+  sys.path.append(CLOSURE_LINTER_PATH)
 import gflags as flags
 
 from closure_linter import error_fixer

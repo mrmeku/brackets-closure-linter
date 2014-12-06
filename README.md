@@ -16,7 +16,7 @@ The closure linter also comes bundled with a `fixjsstyle` command which can auto
 You can also have fixjsstyle run automatically whenever you save a javascript or html document by selecting `Edit > Fixjsstyle On Save`.
 
 Files
----
+___
 - main.js:
   - Sets up menu items for `fixjsstyle` and `fixjsstyle on save`
   - When brackets is ready, `gjslint` is registered to lint both a javascript html

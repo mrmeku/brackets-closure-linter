@@ -43,6 +43,10 @@ import re
 import sys
 import time
 
+CLOSURE_LINTER_PATH = os.path.realpath(__file__)[:-(len('closure_linter/gjslint.py'))]
+if CLOSURE_LINTER_PATH not in sys.path:
+  sys.path.append(CLOSURE_LINTER_PATH)
+
 import gflags as flags
 
 from closure_linter import errorrecord
