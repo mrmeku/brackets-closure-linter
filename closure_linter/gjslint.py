@@ -43,7 +43,9 @@ import re
 import sys
 import time
 
-CLOSURE_LINTER_PATH = os.path.realpath(__file__)[:-(len('closure_linter/gjslint.py'))]
+CLOSURE_LINTER_PATH = os.path.abspath(
+  os.path.join(os.path.dirname( __file__ ), os.pardir)
+)
 if CLOSURE_LINTER_PATH not in sys.path:
   sys.path.append(CLOSURE_LINTER_PATH)
 
