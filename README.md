@@ -6,6 +6,11 @@ A [Brackets](http://brackets.io/) extension that provides hooks to the [Closure 
 Installation
 ---
 To install, place in your ```brackets/src/extensions/user``` folder.
+Alternatively,open the extension manager within brackets and install the Closure Linter package.
+
+Requirements
+---
+`python` must be set within your path since the closure linter is a python executable
 
 Usage
 ---
