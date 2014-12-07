@@ -27,7 +27,7 @@
     }
     fs.writeFile(tempPath, text, function(error) {
       if (error) {
-        callback(error, 'Temporary file could not be written.');
+        callback('Temporary closure linter file could not be written.');
       } else {
         callback(null, tempPath);
       }
@@ -48,14 +48,13 @@
       var escapedPath = tempPath.replace(/ /g, '\\ '),
           command = ['python', GJSLINT_PATH, flags, escapedPath].join(' ');
       if (error) {
-        callback(error, tempPath);
+        callback(tempPath);
         return;
       }
       exec(command, function(error, stdout, stderr) {
         fs.unlink(tempPath);
         if (stderr) {
-          console.error(error, stderr);
-          callback(error, stderr);
+          callback(stderr);
         } else {
           callback(null, stdout);
         }
@@ -77,16 +76,14 @@
       var escapedPath = tempPath.replace(/ /g, '\\ '),
           command = ['python', FIXJSSTYLE_PATH, flags, escapedPath].join(' ');
       if (error) {
-        console.error(error, tempPath);
-        callback(error, tempPath);
+        callback(tempPath);
         return;
       }
       exec(command, function(error, stdout, stderr) {
         var fixedText = fs.readFileSync(tempPath, 'utf8');
         fs.unlink(tempPath);
         if (error) {
-          console.error(error, stderr);
-          callback(error, stderr);
+          callback(stderr);
         } else {
           callback(null, fixedText);
         }
