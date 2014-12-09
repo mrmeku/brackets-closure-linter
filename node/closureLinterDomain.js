@@ -6,10 +6,10 @@
       fs = require('fs');
 
   var GJSLINT_PATH = path.normalize(__dirname +
-          '/../closure_linter/gjslint.py').replace(/ /g, '\\ '),
+          '/../python/closure_linter/gjslint.py').replace(/ /g, '\\ '),
       FIXJSSTYLE_PATH = path.normalize(__dirname +
-          '/../closure_linter/fixjsstyle.py').replace(/ /g, '\\ '),
-      TEMP_COPY_PREFIX = '/brackets-closure-linter-temp';
+          '/../python/closure_linter/fixjsstyle.py').replace(/ /g, '\\ '),
+      TEMP_COPY_PREFIX = path.normalize('/brackets-closure-linter-temp');
 
   /**
    * Creates a path to a temporary copy in the same directory as original.
@@ -20,18 +20,19 @@
     var dirName = path.dirname(filePath),
         baseName = path.basename(filePath),
         tempId = 0,
-        tempPath = [dirName, TEMP_COPY_PREFIX, '.', baseName].join('');
+        tempPath = path.normalize(
+            [dirName, TEMP_COPY_PREFIX, '.', baseName].join(''));
     while (fs.existsSync(tempPath)) {
       tempId++;
-      tempPath = [dirName, TEMP_COPY_PREFIX, tempId, '.', baseName].join('');
+      tempPath = path.normalize(
+          [dirName, TEMP_COPY_PREFIX, tempId, '-', baseName].join(''));
     }
-    fs.writeFile(tempPath, text, function(error) {
-      if (error) {
-        callback(error, 'Temporary file could not be written.');
-      } else {
-        callback(null, tempPath);
-      }
-    });
+    try {
+      fs.writeFileSync(tempPath, text);
+      callback(null, tempPath);
+    } catch (error) {
+      callback(error);
+    }
   }
 
   /**
@@ -48,14 +49,13 @@
       var escapedPath = tempPath.replace(/ /g, '\\ '),
           command = ['python', GJSLINT_PATH, flags, escapedPath].join(' ');
       if (error) {
-        callback(error, tempPath);
+        callback(tempPath);
         return;
       }
       exec(command, function(error, stdout, stderr) {
-        fs.unlink(tempPath);
+        fs.unlinkSync(tempPath);
         if (stderr) {
-          console.error(error, stderr);
-          callback(error, stderr);
+          callback(stderr);
         } else {
           callback(null, stdout);
         }
@@ -77,16 +77,14 @@
       var escapedPath = tempPath.replace(/ /g, '\\ '),
           command = ['python', FIXJSSTYLE_PATH, flags, escapedPath].join(' ');
       if (error) {
-        console.error(error, tempPath);
-        callback(error, tempPath);
+        callback('Temporary closure linter file could not be written.');
         return;
       }
       exec(command, function(error, stdout, stderr) {
         var fixedText = fs.readFileSync(tempPath, 'utf8');
-        fs.unlink(tempPath);
+        fs.unlinkSync(tempPath);
         if (error) {
-          console.error(error, stderr);
-          callback(error, stderr);
+          callback(stderr);
         } else {
           callback(null, fixedText);
         }
