@@ -77,14 +77,14 @@
       var escapedPath = tempPath.replace(/ /g, '\\ '),
           command = ['python', FIXJSSTYLE_PATH, flags, escapedPath].join(' ');
       if (error) {
-        callback('Temporary closure linter file could not be written.');
+        callback('Temporary closure linter file could not be written.', error);
         return;
       }
       exec(command, function(error, stdout, stderr) {
         var fixedText = fs.readFileSync(tempPath, 'utf8');
         fs.unlinkSync(tempPath);
         if (error) {
-          callback(stderr);
+          callback(stderr, error);
         } else {
           callback(null, fixedText);
         }
