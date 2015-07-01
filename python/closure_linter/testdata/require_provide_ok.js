@@ -16,7 +16,8 @@
  * @fileoverview There is nothing wrong w/ this javascript.
  *
  */
-
+goog.module('goog.super.long.DependencyNameThatForcesMethodDefinitionToSpanMultipleLinesFooBar');
+goog.forwardDeclare('goog.super.long.DependencyNameThatForcesMethodDefinitionToSpanMultipleLines');
 goog.provide('goog.something');
 goog.provide('goog.something.Else');
 goog.provide('goog.something.Else.Enum');
@@ -126,7 +127,7 @@ goog.something.usePrivateVariables = function() {
  */
 goog.super.long.DependencyNameThatForcesTheLineToBeOverEightyCharacters =
     function() {
-  var x = new goog.super.long.
+  var x = new goog.super.long. // LINE_ENDS_WITH_DOT
       DependencyNameThatForcesTheLineToBeOverEightyCharacters2();
   var x = new goog.super.long
       .DependencyNameThatForcesTheLineToBeOverEightyCharacters3();
@@ -140,9 +141,9 @@ goog.super.long.DependencyNameThatForcesTheLineToBeOverEightyCharacters =
  * 80 lines. We should be grabbing the whole identifier regardless of how many
  * lines it is on.
  */
-goog.super.long.
-    DependencyNameThatForcesMethodDefinitionToSpanMultipleLinesFooBar.
-        prototype.someMethod = function() {
+goog.super.long
+    .DependencyNameThatForcesMethodDefinitionToSpanMultipleLinesFooBar
+        .prototype.someMethod = function() {
 };
 
 
@@ -154,8 +155,8 @@ goog.something.staticFunction = function() {
   // 'namespace'.
   googSomething.property;
   dummySomething.property;
-  goog.package.ClassName.        // A comment in between the identifier pieces.
-      IDENTIFIER_SPLIT_OVER_MULTIPLE_LINES;
+  goog.package.ClassName        // A comment in between the identifier pieces.
+      .IDENTIFIER_SPLIT_OVER_MULTIPLE_LINES;
   goog.package.OtherClassName.property = 1;
 
   // Test case where inner class needs to be required explicitly.

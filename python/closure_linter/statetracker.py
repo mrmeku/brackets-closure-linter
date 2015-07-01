@@ -24,6 +24,7 @@ import re
 from closure_linter import javascripttokenizer
 from closure_linter import javascripttokens
 from closure_linter import tokenutil
+from closure_linter import typeannotation
 
 # Shorthand
 Type = javascripttokens.JavaScriptTokenType
@@ -39,7 +40,8 @@ class DocFlag(object):
       including braces.
     type_end_token: The last token specifying the flag type,
       including braces.
-    type: The type spec.
+    type: The type spec string.
+    jstype: The type spec, a TypeAnnotation instance.
     name_token: The token specifying the flag name.
     name: The flag name
     description_start_token: The first token in the description.
@@ -111,6 +113,7 @@ class DocFlag(object):
   SUPPRESS_TYPES = frozenset([
       'accessControls',
       'ambiguousFunctionDecl',
+      'checkDebuggerStatement',
       'checkRegExp',
       'checkStructDictInheritance',
       'checkTypes',
@@ -132,7 +135,9 @@ class DocFlag(object):
       'missingRequire',
       'missingReturn',
       'nonStandardJsDocs',
+      'reportUnknownTypes',
       'strictModuleDepCheck',
+      'suspiciousCode',
       'tweakValidation',
       'typeInvalidation',
       'undefinedNames',
@@ -143,38 +148,86 @@ class DocFlag(object):
       'unusedPrivateMembers',
       'uselessCode',
       'visibility',
-      'with'])
+      'with',
+  ])
 
   HAS_DESCRIPTION = frozenset([
-      'define', 'deprecated', 'desc', 'fileoverview', 'license', 'param',
-      'preserve', 'return', 'supported'])
+      'define',
+      'deprecated',
+      'desc',
+      'fileoverview',
+      'license',
+      'param',
+      'preserve',
+      'return',
+      'supported',
+  ])
 
+  # Docflags whose argument should be parsed using the typeannotation parser.
   HAS_TYPE = frozenset([
-      'define', 'enum', 'extends', 'implements', 'param', 'return', 'type',
-      'suppress', 'const', 'package', 'private', 'protected', 'public'])
+      'const',
+      'define',
+      'enum',
+      'export',
+      'extends',
+      'final',
+      'implements',
+      'mods',
+      'package',
+      'param',
+      'private',
+      'protected',
+      'public',
+      'return',
+      'suppress',
+      'type',
+      'typedef',
+  ])
 
-  CAN_OMIT_TYPE = frozenset(['enum', 'const', 'package', 'private',
-      'protected', 'public'])
+  # Docflags for which it's ok to omit the type (flag without an argument).
+  CAN_OMIT_TYPE = frozenset([
+      'const',
+      'enum',
+      'export',
+      'final',
+      'package',
+      'private',
+      'protected',
+      'public',
+      'suppress',  # We'll raise a separate INCORRECT_SUPPRESS_SYNTAX instead.
+  ])
 
-  TYPE_ONLY = frozenset(['enum', 'extends', 'implements', 'suppress', 'type',
-      'const', 'package', 'private', 'protected', 'public'])
+  # Docflags that only take a type as an argument and should not parse a
+  # following description.
+  TYPE_ONLY = frozenset([
+      'const',
+      'enum',
+      'extends',
+      'implements',
+      'package',
+      'suppress',
+      'type',
+  ])
 
   HAS_NAME = frozenset(['param'])
 
   EMPTY_COMMENT_LINE = re.compile(r'^\s*\*?\s*$')
   EMPTY_STRING = re.compile(r'^\s*$')
 
-  def __init__(self, flag_token):
+  def __init__(self, flag_token, error_handler=None):
     """Creates the DocFlag object and attaches it to the given start token.
 
     Args:
       flag_token: The starting token of the flag.
+      error_handler: An optional error handler for errors occurring while
+        parsing the doctype.
     """
     self.flag_token = flag_token
     self.flag_type = flag_token.string.strip().lstrip('@')
 
     # Extract type, if applicable.
     self.type = None
+    self.jstype = None
     self.type_start_token = None
     self.type_end_token = None
     if self.flag_type in self.HAS_TYPE:
@@ -183,6 +236,8 @@ class DocFlag(object):
       if brace:
         end_token, contents = _GetMatchingEndBraceAndContents(brace)
         self.type = contents
+        self.jstype = typeannotation.Parse(brace, end_token,
+                                           error_handler)
         self.type_start_token = brace
         self.type_end_token = end_token
       elif (self.flag_type in self.TYPE_ONLY and
@@ -196,6 +251,8 @@ class DocFlag(object):
             self.type_start_token)
         if self.type is not None:
           self.type = self.type.strip()
+          self.jstype = typeannotation.Parse(flag_token, self.type_end_token,
+                                             error_handler)
 
     # Extract name, if applicable.
     self.name_token = None
@@ -236,6 +293,13 @@ class DocFlag(object):
         self.description_start_token = interesting_token
         self.description_end_token, self.description = (
             _GetEndTokenAndContents(interesting_token))
+
+  def HasType(self):
+    """Returns whether this flag should have a type annotation."""
+    return self.flag_type in self.HAS_TYPE
+
+  def __repr__(self):
+    return '<Flag: %s, type:%s>' % (self.flag_type, repr(self.jstype))
 
 
 class DocComment(object):
@@ -287,12 +351,9 @@ class DocComment(object):
     Args:
       token: The suppression flag token.
     """
-    #TODO(user): Error if no braces
-    brace = tokenutil.SearchUntil(token, [Type.DOC_START_BRACE],
-                                  [Type.DOC_FLAG])
-    if brace:
-      end_token, contents = _GetMatchingEndBraceAndContents(brace)
-      for suppression in contents.split('|'):
+    flag = token and token.attached_object
+    if flag and flag.jstype:
+      for suppression in flag.jstype.IterIdentifiers():
         self.suppressions[suppression] = token
 
   def SuppressionOnly(self):
@@ -716,6 +777,23 @@ class StateTracker(object):
     self._documented_identifiers = set()
     self._variables_in_scope = []
 
+  def DocFlagPass(self, start_token, error_handler):
+    """Parses doc flags.
+
+    This pass needs to be executed before the aliaspass and we don't want to do
+    a full-blown statetracker dry run for these.
+
+    Args:
+      start_token: The token at which to start iterating
+      error_handler: An error handler for error reporting.
+    """
+    if not start_token:
+      return
+    doc_flag_types = (Type.DOC_FLAG, Type.DOC_INLINE_FLAG)
+    for token in start_token:
+      if token.type in doc_flag_types:
+        token.attached_object = self._doc_flag(token, error_handler)
+
   def InFunction(self):
     """Returns true if the current token is within a function.
 
@@ -1054,8 +1132,12 @@ class StateTracker(object):
       self._doc_comment.end_token = token
 
     elif type in (Type.DOC_FLAG, Type.DOC_INLINE_FLAG):
-      flag = self._doc_flag(token)
-      token.attached_object = flag
+      # Don't overwrite flags if they were already parsed in a previous pass.
+      if token.attached_object is None:
+        flag = self._doc_flag(token)
+        token.attached_object = flag
+      else:
+        flag = token.attached_object
       self._doc_comment.AddFlag(flag)
 
       if flag.flag_type == 'suppress':
@@ -1065,8 +1147,8 @@ class StateTracker(object):
       last_code = tokenutil.SearchExcept(token, Type.NON_CODE_TYPES, None,
                                          True)
       doc = None
-      # Only functions outside of parens are eligible for documentation.
-      if not self._paren_depth:
+      # Only top-level functions are eligible for documentation.
+      if self.InTopLevel():
         doc = self._doc_comment
 
       name = ''
@@ -1080,8 +1162,7 @@ class StateTracker(object):
         # my.function.foo.
         #   bar = function() ...
         identifier = tokenutil.Search(last_code, Type.SIMPLE_LVALUE, None, True)
-        while identifier and identifier.type in (
-            Type.IDENTIFIER, Type.SIMPLE_LVALUE):
+        while identifier and tokenutil.IsIdentifierOrDot(identifier):
           name = identifier.string + name
           # Traverse behind us, skipping whitespace and comments.
           while True:

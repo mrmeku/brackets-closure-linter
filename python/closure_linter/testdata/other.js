@@ -72,7 +72,7 @@ x.z = 1000;
 
 /**
  * Visibility tags are allowed to have type, therefore they allowed to be long.
- * @package {function(ReallyReallyReallyReallyLongType, AnotherExtremelyLongType) : LongReturnType}
+ * @package {function(ReallyReallyReallyReallyLongType,AnotherExtremelyLongType):LongReturnType}
  */
 x.z = 1000;
 
@@ -205,6 +205,9 @@ var x = 100 + 100 + 100 + 100 + 100 + 100 + 100 + 100 + 100 + 100 + 100 + 100 +
 var x = z++
     + 20; // LINE_STARTS_WITH_OPERATOR
 
+var x = z. // LINE_ENDS_WITH_DOT
+    y();
+
 // Regression test: This line was incorrectly not reporting an error
 var marginHeight = x.layout.getSpacing_(elem, 'marginTop')
     + x.layout.getSpacing_(elem, 'marginBottom');
@@ -268,15 +271,16 @@ if (someCondition) {
   delete this.foo_[bar];
 }
 
-x = [1, 2, 3,]; // COMMA_AT_END_OF_LITERAL
-x = [1, 2, 3, /* A comment */]; // COMMA_AT_END_OF_LITERAL
+// Commas at the end of literals used to be forbidden.
+x = [1, 2, 3,];
+x = [1, 2, 3, /* A comment */];
 x = [
   1,
   2,
-  3, // COMMA_AT_END_OF_LITERAL
+  3,
 ];
 x = {
-  a: 1, // COMMA_AT_END_OF_LITERAL
+  a: 1,
 };
 
 // Make sure we don't screw up typing for Lvalues and think b:c is a type value
@@ -354,9 +358,9 @@ x = {
         40)
   ]
 } // MISSING_SEMICOLON
-x = a.
-    b.
-    c().
+x = a
+    .b
+    .c(). // LINE_ENDS_WITH_DOT
     d;
 
 // Test that blocks without braces don't generate incorrect semicolon and
@@ -422,5 +426,34 @@ switch (foo) {
     var a = new Scheme({default: 0});
     break;
 }
+
+
+/** @private Some text is allowed after tag */
+x.y_ = function() {
+};
+
+
+/** @private Some text is allowed after tag but not the long oneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.*/ // LINE_TOO_LONG
+x.y_ = function() {
+};
+
+
+/** @private {number} Some text is allowed after tag */
+x.z_ = 200;
+
+
+/** @private {number} Some text is allowed after tag but not the long oneeeeeeeeeeeeeeee. */ // LINE_TOO_LONG
+x.z_ = 200;
+
+// Regression tests for b/16298424.
+var z = function() {}.bind();
+window.alert(function() {}.bind());
+function() {
+}.bind();
+var y = function() {
+}.bind();
+var y = function() {
+        }
+        .bind();
 
 /* comment not closed  // FILE_MISSING_NEWLINE, FILE_IN_BLOCK

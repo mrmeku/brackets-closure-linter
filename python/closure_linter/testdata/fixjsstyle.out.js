@@ -57,6 +57,18 @@ dummy.aa.someMethod();
 x.y = function(badTypeWithExtraSpace) {
 };
 
+
+/** @type {function():null|Array.<?string>} only 2nd |null -> ? */
+x.badType;
+
+
+/** @type {?Array.<number|string|null>} only 2nd |null -> ? */
+x.wickedType;
+
+
+/** @type {? string } null -> ? */
+x.nullWithSpace;
+
 spaceBeforeSemicolon = 10;
 spaceBeforeParen = 10 + (5 * 2);
 arrayNoSpace = [10];
@@ -159,9 +171,9 @@ baz.baz = function() {
 
 TR_Node.splitDomTreeAt(splitNode, clone, /** @type {Node} */ (quoteNode));
 
-x = [1, 2, 3];
+x = [1, 2, 3,];
 x = {
-  a: 1
+  a: 1,
 };
 
 if (x) {

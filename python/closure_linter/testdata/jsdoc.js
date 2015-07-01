@@ -142,6 +142,9 @@ function missingParamButInherit(object) {
  * @param {Object} object Docs.
  */
 function mismatchedParam(elem) { // WRONG_PARAMETER_DOCUMENTATION
+  /** @param {number} otherElem */
+  function nestedFunction(elem) { // WRONG_PARAMETER_DOCUMENTATION
+  };
 }
 
 
@@ -205,6 +208,15 @@ function okMissingReturnDoc() {
  * @return {number} Unnecessary return doc.
  */
 function unnecessaryMissingReturnDoc() {
+}
+
+
+/**
+ * The "suppress" causes the compiler to ignore the 'debugger' statement.
+ * @suppress {checkDebuggerStatement}
+ */
+function checkDebuggerStatementWithSuppress() {
+  debugger;
 }
 
 
@@ -615,6 +627,45 @@ class.goodReturn = function() {
 };
 
 
+/** @type {Array.<Object|null>} // JSDOC_PREFER_QUESTION_TO_PIPE_NULL */
+class.badType;
+
+
+/**
+ * For template types, the ?TYPE notation is not parsed correctly by the
+ * compiler, so don't warn here.
+ * @type {Array.<TYPE|null>}
+ * @template TYPE
+ */
+class.goodTemplateType;
+
+
+// As the syntax may look ambivalent: The function returns just null.
+/** @type {function():null|Object} */
+class.goodType;
+
+
+/** @type {function():(null|Object)} // JSDOC_PREFER_QUESTION_TO_PIPE_NULL */
+class.badType;
+
+
+// As the syntax may look ambivalent: The function returns just Object.
+/** @type {function():Object|null} // JSDOC_PREFER_QUESTION_TO_PIPE_NULL */
+class.badType;
+
+
+/** @type {(function():Object)|null} // JSDOC_PREFER_QUESTION_TO_PIPE_NULL */
+class.badType;
+
+
+/** @type {function(null,Object)} */
+class.goodType;
+
+
+/** @type {{a:null,b:Object}} */
+class.goodType;
+
+
 // +2: JSDOC_PREFER_QUESTION_TO_PIPE_NULL
 /**
  * @return {Object|null} A bad return.
@@ -854,7 +905,7 @@ class.goodOverrideDocs = function() {
  * Test that flags embedded in docs don't trigger ends with invalid character
  * error.
  * @bug 2983692
- * @deprecated Please use the {@code @typedef} annotation.
+ * @deprecated Please use the {@code @hidden} annotation.
  */
 function goodEndChar() {
 }
@@ -933,7 +984,7 @@ bar.foo = null;
 
 /**
  * @extends Object} //MISSING_BRACES_AROUND_TYPE
- */
+ */ // JSDOC_DOES_NOT_PARSE
 bar.baz = x;
 
 
@@ -1064,8 +1115,8 @@ test.x.y = function() {
  * parsed as being here.
  * @param {Event} e The event.
  */
-detroit.commands.ChangeOwnerCommand.
-    prototype.handleDocumentStoreCompleteEvent = function(e) {
+detroit.commands.ChangeOwnerCommand
+    .prototype.handleDocumentStoreCompleteEvent = function(e) {
   this.x = e.target;
 };
 
@@ -1249,18 +1300,18 @@ TypelessEnumTest = {
 // prototype.
 x.prototype = {};
 
-y.
-    prototype = {};
+y
+    .prototype = {};
 
-x.y.
-    z.prototype = {};
+x.y
+    .z.prototype = {};
 
 x.myprototype = {}; // MISSING_MEMBER_DOCUMENTATION
 
 x.prototype.y = 5; // MISSING_MEMBER_DOCUMENTATION
 
-x.prototype.
-    y.z = {}; // MISSING_MEMBER_DOCUMENTATION
+x.prototype
+    .y.z = {}; // MISSING_MEMBER_DOCUMENTATION
 
 
 /** @typedef {(string|number)} */
@@ -1374,6 +1425,31 @@ Foo.prototype = {
   method: function() {
     return this.method();
   }
+};
+
+/** Regression tests for annotation types with spaces. */
+
+
+/** @enum {goog.events.Event<string, number>} */
+var Bar;
+
+
+/** @export {goog.events.Event<string, number>} */
+var Bar;
+
+
+/** @package {goog.events.Event<string, number>} */
+var Bar;
+
+
+
+/**
+ * @constructor
+ * @implements {goog.dom.Range<string, number>}
+ */
+var Foo = function() {
+  /** @final {goog.events.Event<string, number>} */
+  this.bar = null;
 };
 
 /* Regression tests for not ending block comments. Keep at end of file! **/

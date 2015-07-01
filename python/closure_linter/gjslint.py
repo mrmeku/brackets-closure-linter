@@ -43,13 +43,13 @@ import re
 import sys
 import time
 
+import gflags as flags
+
 CLOSURE_LINTER_PATH = os.path.abspath(
   os.path.join(os.path.dirname( __file__ ), os.pardir)
 )
 if CLOSURE_LINTER_PATH not in sys.path:
   sys.path.append(CLOSURE_LINTER_PATH)
-
-import gflags as flags
 
 from closure_linter import errorrecord
 from closure_linter import runner
@@ -260,6 +260,14 @@ def main(argv=None):
 
   if FLAGS.time:
     start_time = time.time()
+
+  # Emacs sets the environment variable INSIDE_EMACS in the subshell.
+  # Request Unix mode as emacs will expect output to be in Unix format
+  # for integration.
+  # See https://www.gnu.org/software/emacs/manual/html_node/emacs/
+  # Interactive-Shell.html
+  if 'INSIDE_EMACS' in os.environ:
+    FLAGS.unix_mode = True
 
   suffixes = ['.js']
   if FLAGS.additional_extensions:

@@ -67,8 +67,16 @@ callAFunction('abc' +
               'def' +
               'ghi');
 
-x.reallyReallyReallyReallyReallyReallyReallyReallyReallyReallyReallyLongName.
-    someMember = 10;
+x.reallyReallyReallyReallyReallyReallyReallyReallyReallyReallyReallyLongName
+    .someMember = 10;
+
+
+// confused on allowed indentation in continued function assignments vs overlong
+// wrapped function calls.
+some.sample().  // LINE_ENDS_WITH_DOT
+    then(function(response) {
+      return 1;
+    });
 
 
 /**
@@ -147,8 +155,8 @@ switch (x) {
     }
     break;
 
-  case SadThatYouSwitch.
-      onSomethingLikeThis:
+  case SadThatYouSwitch
+      .onSomethingLikeThis:
     z = 10;
 
   case 40:
@@ -171,6 +179,17 @@ if (x) {
 /** @inheritDoc */
 goog.editor.SeamlessField.prototype.setupMutationEventHandlersGecko =
     function() {
+  var x = 10;
+  x++;
+};
+
+
+// Regression test for '.' at the end confusing the indentation checker if it is
+// not considered to be part of the identifier.
+/** @inheritDoc */
+goog.editor.SeamlessField.prototype.
+    setupMutationEventHandlersGecko = function() {
+  // -2: LINE_ENDS_WITH_DOT
   var x = 10;
   x++;
 };
@@ -394,6 +413,34 @@ if (true) {
     doc.getBar(baz))) {
   var x = 3;
 }
+
+// Regression tests for function indent + 4.
+// (The first example is from the styleguide.)
+if (veryLongFunctionNameA(
+        veryLongArgumentName) ||
+    veryLongFunctionNameB(
+    veryLongArgumentName)) {
+  veryLongFunctionNameC(veryLongFunctionNameD(
+      veryLongFunctioNameE(
+          veryLongFunctionNameF)));
+}
+
+if (outer(middle(
+        inner(first)))) {}
+if (outer(middle(
+              inner(second)),
+        outer_second)) {}
+if (nested.outer(
+        first)) {}
+if (nested.outer(nested.middle(
+                     first))) {}
+if (nested
+    .outer(nested.middle(
+        first))) {}
+if (nested.outer(first
+                     .middle(
+                         second),
+        third)) {}
 
 // goog.scope should not increase indentation.
 goog.scope(function() {
