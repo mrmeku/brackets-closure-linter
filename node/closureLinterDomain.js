@@ -13,12 +13,12 @@
 
   /**
    * Creates a path to a temporary copy in the same directory as original.
-   * @param {string} filePath Path of file to copy.
+   * @param {string} fullPath Path of file to copy.
    * @return {string} Path to temporary copy in same directory as original.
    */
-  function createTempCopy(text, filePath, callback) {
-    var dirName = path.dirname(filePath),
-        baseName = path.basename(filePath),
+  function createTempCopy(text, fullPath, callback) {
+    var dirName = path.dirname(fullPath),
+        baseName = path.basename(fullPath),
         tempId = 0,
         tempPath = path.normalize(
             [dirName, TEMP_COPY_PREFIX, '.', baseName].join(''));
@@ -38,14 +38,13 @@
   /**
    * Runs fixjsstyle on potentially unsaved text.
    * @param {string} text Potentially unsaved text of file.
-   * @param {filePath} filePath Path of file to fix.
+   * @param {fullPath} fullPath Path of file to fix.
    * @param {function} callback Callback to be called after. Takes an error or
    *    null as first parameter and gjslint output as the second parameter.
    */
-  function gjslint(text, filePath, callback) {
+  function gjslint(text, fullPath, flags, callback) {
     // TODO (mrmeku): parse gjslintrc for flags.
-    var flags = '--quiet --nosummary --strict';
-    createTempCopy(text, filePath, function(error, tempPath) {
+    createTempCopy(text, fullPath, function(error, tempPath) {
       var escapedPath = tempPath.replace(/ /g, '\\ '),
           command = ['python', GJSLINT_PATH, flags, escapedPath].join(' ');
       if (error) {
@@ -66,14 +65,13 @@
   /**
    * Runs fixjsstyle on potentially unsaved text.
    * @param {string} text Potentially unsaved text of file.
-   * @param {filePath} filePath Path of file to fix.
+   * @param {fullPath} fullPath Path of file to fix.
    * @param {function} callback Callback to be called after. Takes an error or
    *    null as first parameter and fixed text as the second parameter.
    */
-  function fixjsstyle(text, filePath, callback) {
+  function fixjsstyle(text, fullPath, flags, callback) {
     // TODO (mrmeku): parse gjslintrc for flags.
-    var flags = '--strict';
-    createTempCopy(text, filePath, function(error, tempPath) {
+    createTempCopy(text, fullPath, function(error, tempPath) {
       var escapedPath = tempPath.replace(/ /g, '\\ '),
           command = ['python', FIXJSSTYLE_PATH, flags, escapedPath].join(' ');
       if (error) {

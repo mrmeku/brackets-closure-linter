@@ -12,7 +12,14 @@ define(function(require, exports, module) {
         key: 'Cmd-Shift-J',
         platform: 'mac'
       }],
-      LINT_ERROR_REGEXP = new RegExp('^Line (\\d+), ([E,W])(:[\\d]+: (.*))$');
+      LINT_ERROR_REGEXP = new RegExp('^Line (\\d+), ([E,W])(:[\\d]+: (.*))$'),
+      CONFIG_FILE_NAME = '.gjslintrc',
+      DEFAULT_CONFIG = {
+        flags: {
+          gjslint: '--quiet --nosummary --strict',
+          fixjsstyle: '--strict'
+        }
+      };
 
   var AppInit = brackets.getModule('utils/AppInit'),
       DocumentManager = brackets.getModule('document/DocumentManager'),
@@ -20,9 +27,12 @@ define(function(require, exports, module) {
       CodeInspection = brackets.getModule('language/CodeInspection'),
       EditorManager = brackets.getModule('editor/EditorManager'),
       ExtensionUtils = brackets.getModule('utils/ExtensionUtils'),
+      FileUtils = brackets.getModule('file/FileUtils'),
+      FileSystem = brackets.getModule('filesystem/FileSystem'),
       Menus = brackets.getModule('command/Menus'),
       NodeDomain = brackets.getModule('utils/NodeDomain'),
-      PreferencesManager = brackets.getModule('preferences/PreferencesManager');
+      PreferencesManager = brackets.getModule('preferences/PreferencesManager'),
+      ProjectManager = brackets.getModule('project/ProjectManager');
 
   // Access to node process with hooks to closure linter.
   var closureLinter = new NodeDomain('closureLinter',
@@ -39,22 +49,94 @@ define(function(require, exports, module) {
         setFixjsstyleOnSave(!this.getChecked());
       });
 
+
+  function _loadConfigHelper(rootPath, currentPath, deferredResult) {
+    var configFilePath = currentPath + CONFIG_FILE_NAME;
+    var file = FileSystem.getFileForPath(configFilePath);
+    FileUtils
+        .readAsText(file)
+        .then(
+        function(content) {
+          try {
+            var config = JSON.parse(content);
+            $.extend(DEFAULT_CONFIG, config);
+            deferredResult.resolve(config);
+          }
+          catch (e) {
+            console.error(EXTENSION_ID + ': invalid json ' + configFilePath);
+            deferredResult.reject(e);
+          }
+        },
+        function(err) {
+          if (rootPath === currentPath) {
+            deferredResult.resolve(DEFAULT_CONFIG);
+          }
+          else {
+            currentPath = FileUtils.getParentPath(currentPath);
+            _loadConfigHelper(rootPath, currentPath, deferredResult);
+          }
+        }
+        );
+  }
+
+  /**
+   * Loads closure-linter configuration for the specified file.
+   *
+   * The configuration file should have name .gjslint. If the specified file
+   * is outside the current project root, then defaultConfiguration is used.
+   * Otherwise, the configuration file is looked up starting from the directory
+   * where the specified file is located, going up to the project root,
+   * but no further.
+   *
+   * @param {string}    fullPath Absolute path for the file linted.
+   *
+   * @return {$.Promise} Promise to return JSHint configuration object.
+   *
+   * @see <a href="http://www.jshint.com/docs/options/">JSHint option
+   * reference</a>.
+   */
+  function _loadConfig(fullPath) {
+
+    var projectRoot = ProjectManager.getProjectRoot(),
+        deferredResult = new $.Deferred();
+
+    if (!projectRoot || !fullPath) {
+      return deferredResult.reject().promise();
+    }
+
+    var rootPath = projectRoot.fullPath,
+        currentPath = FileUtils.getParentPath(fullPath);
+
+    _loadConfigHelper(rootPath, currentPath, deferredResult);
+    return deferredResult.promise();
+  }
+
   /**
    * Makes an asynchronous call to gjslint on the potentially unsaved text.
    * @param {string} text Text content of the potentially unsaved file.
-   * @param {string} filePath Path to the potentially unsaved file being linted.
+   * @param {string} fullPath Path to the potentially unsaved file being linted.
    * @return {$.Promise} Promise to return an object mapping to an array of
    *     linting errors.
    */
-  function gjslintAsync(text, filePath) {
+  function gjslintAsync(text, fullPath) {
     var deferred = new $.Deferred();
-    closureLinter.exec('gjslint', text, filePath)
-        .done(function(stdout) {
-          deferred.resolve({errors: parseGjslintStdout(stdout)});
-        })
-        .fail(function(error, message) {
-          deferred.reject(error, message);
-        });
+
+    _loadConfig(fullPath).then(
+        function(config) {
+          var flags = config.flags.gjslint;
+          closureLinter.exec('gjslint', text, fullPath, flags)
+          .done(function(stdout) {
+            deferred.resolve({errors: parseGjslintStdout(stdout)});
+          })
+          .fail(function(error, message) {
+            deferred.reject(error, message);
+          });
+        },
+        function() {
+          deferred.reject();
+        }
+    );
+
     return deferred.promise();
   }
 
@@ -88,19 +170,22 @@ define(function(require, exports, module) {
    */
   function fixjsstyleAsync() {
     var editor = EditorManager.getCurrentFullEditor(),
-        filePath = EditorManager.getCurrentlyViewedPath();
-    if (editor && filePath) {
+        fullPath = EditorManager.getCurrentlyViewedPath();
+
+    if (editor && fullPath) {
       var document = editor.document,
           text = document.getText(),
           cursor = editor.getCursorPos(),
           scroll = editor.getScrollPos(),
-          language = document.getLanguage().getId();
-      // Only fix the style of javascript or html script tags
-      if (language === 'javascript' || language === 'html') {
-        // Keep a reference of document during async command.
-        document.addRef();
-        return closureLinter.exec('fixjsstyle', text, filePath)
-        .done(function(styledText) {
+          flags;
+
+      // Keep a reference of document during async command.
+      document.addRef();
+      _loadConfig(fullPath).then(
+          function(config) {
+            var flags = config.flags.fixjsstyle;
+            closureLinter.exec('fixjsstyle', text, fullPath, flags)
+            .done(function(styledText) {
               if (styledText !== text) {
                 // Replace the text and reset the viewport/cursor.
                 editor.document.setText(styledText);
@@ -108,11 +193,11 @@ define(function(require, exports, module) {
                 editor.setCursorPos(cursor.line, cursor.ch);
               }
             })
-        .always(function() {
+            .always(function() {
               // Release document reference since we are done with it.
               document.releaseRef();
             });
-      }
+          });
     }
   }
 
