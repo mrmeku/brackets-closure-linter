@@ -2,8 +2,8 @@ define(function(require, exports, module) {
   'use strict';
 
   var EXTENSION_ID = 'com.github.mrmeku.closure-linter',
-      GJSLINT_ID = EXTENSION_ID + '.gjslint',
-      FIXJSSTYLE_ID = EXTENSION_ID + '.fixjsstyle',
+      GJSLINT_ID = 'gjslint',
+      FIXJSSTYLE_ID = 'fixjsstyle',
       FIXJSSTYLE_ONSAVE_ID = FIXJSSTYLE_ID + '.onSave',
       FIXJSSTYLE_SHORTCUT = [{
         key: 'Ctrl-Shift-J',
