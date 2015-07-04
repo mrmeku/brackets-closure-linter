@@ -8,6 +8,17 @@ Installation
 To install, place in your ```brackets/src/extensions/user``` folder.
 Alternatively,open the extension manager within brackets and install the Closure Linter package.
 
+Brackets has JSLint built in and if you wish to ignore JSLint results, you must tell Brackets to explicitly use gjslint only. This can be done via a .brackets.json file in the root of your project or going clicking `Debug > Open Preferneces File` to edit your global preferences. Simply use this block:
+
+```json
+"language": {
+    "javascript": {
+        "linting.prefer": "gjslint",
+        "linting.usePreferredOnly": true
+    }
+}
+```
+
 Requirements
 ---
 `python` must be set within your path since the closure linter is a python executable
